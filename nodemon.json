@@ -1,0 +1,16 @@
+{
+	"ignore": [
+		"**/**/gen.graph.*.js",
+		"**/**/gen.routes.*.*.js",
+		"**/**/gen/routers/**/*.js",
+		"**/**/gen.annotations.*.js",
+		"server/api/routers/gen/*.js",
+		"web/js/dist/*.js",
+		"shared/routes/gen/",
+		"web/ssoapp/toppubs/**/*.js",
+		"web/ssoapp/manystoriesv2r/**/*.js",
+		"web/common/react/",
+		"browserExtension/",
+		"**/**/*_test.js"
+	]
+}
