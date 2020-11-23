@@ -1,5 +1,5 @@
 {
-  "name": "slimgoose",
+  "name": "@penname/slimgoose",
   "version": "0.0.1",
   "description": "A slim Mongoose interface to MongoDB",
   "main": "index.js",
@@ -26,5 +26,9 @@
   "dependencies": {
     "q": "^1.5.1",
     "ramda": "^0.27.1"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
   }
 }
