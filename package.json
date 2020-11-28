@@ -4,7 +4,7 @@
   "description": "A slim Mongoose interface to MongoDB",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,7 @@
     "mongodb-memory-server": "^6.9.2"
   },
   "dependencies": {
+    "mongoose": "^5.10.16",
     "q": "^1.5.1",
     "ramda": "^0.27.1"
   },
