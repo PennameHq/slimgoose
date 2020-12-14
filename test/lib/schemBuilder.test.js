@@ -253,4 +253,25 @@ describe('schemaBuilder', () => {
 			})
 		})
 	})
+
+	describe('#toModelWithConnection()', () => {
+		it(`should call the mongoose.Connection.model method with the provided name and the builder's schema`, () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			})
+
+			const modelName = `boss_user_${Date.now()}`
+			const connection = mongoose.createConnection()
+
+			const modelSpy = jest.spyOn(connection, 'model').mockImplementation(() => ({
+				foo: 'bar',
+			}))
+
+			builder.toModelWithConnection(modelName, connection)
+
+			expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+		})
+	})
 })
