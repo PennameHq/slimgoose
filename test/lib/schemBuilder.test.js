@@ -2,18 +2,18 @@
  * Jest cheatsheet: https://github.com/sapegin/jest-cheat-sheet/blob/master/Readme.md
  */
 
-const Q = require('q')
-const mongooseSelector = require('../../lib/mongooseSelector')
 const mongoose = require('mongoose')
+const mongooseSelector = require('../../lib/mongooseSelector')
 const SchemaBuilder = require('../../lib/SchemaBuilder')
 const helper = require('../helper')
 
 describe('schemaBuilder', () => {
 	const _ = SchemaBuilder
 
-	beforeEach(() => {
+	afterEach(() => {
 		jest.resetModules()
 		jest.resetAllMocks()
+		jest.clearAllMocks()
 	})
 
 	const printBuilderSchema = (builder) => {
@@ -125,6 +125,74 @@ describe('schemaBuilder', () => {
 		})
 	})
 
+	describe('#method()', () => {
+		it('should add the provided methods as instance methods on the schema', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			})
+
+			const methods = {
+				getMyUsernameById(id) {
+					return this.findById(id)
+						.select({ username: 1 })
+						.exec()
+						.then(({ username }) => username)
+				},
+				loadMyFeed({ from, limit }) {
+					return this.find({ username: { $gte: from } })
+						.limit(limit)
+						.exec()
+				},
+			}
+			builder.methods(methods)
+
+			Object.keys(methods).forEach((key) => {
+				expect(builder._schema.methods[key]).toBeInstanceOf(Function)
+			})
+		})
+
+		it('should calls the correct mongoose.Schema function', () => {
+			const methodSpy = jest.spyOn(mongoose.Schema.prototype, 'method')
+
+			const methods = {
+				loadMyFeed({ from, limit }) {
+					return this.find({ username: { $gte: from } })
+						.limit(limit)
+						.exec()
+				},
+				coolBeans() {
+					return this.find()
+				},
+			}
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).methods(methods)
+
+			expect(methodSpy).toHaveBeenCalledWith(methods)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+			})
+
+			expect(
+				builder.methods({
+					loadMyFeed({ from, limit }) {
+						return this.find({ username: { $gte: from } })
+							.limit(limit)
+							.exec()
+					},
+				}),
+			).toEqual(builder)
+		})
+	})
+
 	describe('#staticMethods()', () => {
 		it('should add the provided methods as static methods on the schema', () => {
 			const builder = new _({
@@ -190,6 +258,261 @@ describe('schemaBuilder', () => {
 					},
 				}),
 			).toEqual(builder)
+		})
+	})
+
+	describe('#staticFields()', () => {
+		it('should add the provided methods as static fields on the schema', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			})
+
+			const fields = {
+				foo: `bar_${Date.now()}`,
+				MIN_AGE: 13,
+			}
+
+			builder.staticFields(fields)
+
+			Object.keys(fields).entries(([key, value]) => {
+				const staticField = builder._schema.statics[key]
+				expect(staticField).toBe(value)
+				expect(staticField).not.toBeUndefined()
+			})
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+			})
+
+			expect(
+				builder.staticFields({
+					foo: 'bar',
+				}),
+			).toEqual(builder)
+		})
+	})
+
+	describe('#index()', () => {
+		it('should calls the correct mongoose.Schema function', () => {
+			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'index')
+			const indices = { username: 1 }
+			const opts = { foo: 'bar' }
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).index(indices, opts)
+
+			expect(proxySpy).toHaveBeenCalledWith(indices, opts)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+
+			expect(builder.index({ username: 1 })).toEqual(builder)
+		})
+	})
+
+	describe('#setOption()', () => {
+		it('should calls the correct mongoose.Schema function', () => {
+			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'set')
+			const key = 'timestamps'
+			const value = true
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).setOption(key, value)
+
+			expect(proxySpy).toHaveBeenCalledWith(key, value)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+
+			expect(builder.setOption('timestamps', true)).toEqual(builder)
+		})
+	})
+
+	describe('#useClass()', () => {
+		const myClass = class {
+			findOneOfMyOwnById(id) {
+				return this.find({ _id: id })
+			}
+		}
+
+		it('should calls the correct mongoose.Schema function', () => {
+			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'loadClass')
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).useClass(myClass)
+
+			expect(proxySpy).toHaveBeenCalledWith(myClass)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+
+			expect(builder.setOption(myClass)).toEqual(builder)
+		})
+	})
+
+	describe('#plugin()', () => {
+		it('should calls the correct mongoose.Schema function', () => {
+			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'plugin')
+			const plugin = (schema) => 'cool'
+			const opts = { foo: 'bar' }
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).plugin(plugin, opts)
+
+			expect(proxySpy).toHaveBeenCalledWith(plugin, opts)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+
+			expect(builder.plugin(() => 1)).toEqual(builder)
+		})
+	})
+
+	describe('#pre()', () => {
+		it('should calls the correct mongoose.Schema function', () => {
+			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'pre')
+			const callback = function () {
+				return Promise.resolve()
+			}
+			const operationKey = 'save'
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).pre(operationKey, callback)
+
+			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+
+			expect(
+				builder.pre('save', function (next) {
+					next()
+				}),
+			).toEqual(builder)
+		})
+	})
+
+	describe('#post()', () => {
+		it('should calls the correct mongoose.Schema function', () => {
+			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'post')
+			const callback = function () {
+				return Promise.resolve()
+			}
+			const operationKey = 'remove'
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).post(operationKey, callback)
+
+			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+
+			expect(
+				builder.post('validate', function (next) {
+					next()
+				}),
+			).toEqual(builder)
+		})
+	})
+
+	describe('#preDoc()', () => {
+		it('should call the #pre() method and return the builder', () => {
+			const callback = function () {}
+			const operationKey = 'remove'
+
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+			const proxySpy = jest.spyOn(builder, 'pre')
+
+			expect(builder.preDoc(operationKey, callback)).toEqual(builder)
+			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
+		})
+	})
+
+	describe('#preQuery()', () => {
+		it('should call the #pre() method and return the builder', () => {
+			const callback = function () {}
+			const operationKey = 'remove'
+
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+			const proxySpy = jest.spyOn(builder, 'pre')
+
+			expect(builder.preQuery(operationKey, callback)).toEqual(builder)
+			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
+		})
+	})
+
+	describe('#postDoc()', () => {
+		it('should call the #post() method and return the builder', () => {
+			const callback = function () {}
+			const operationKey = 'remove'
+
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+			const proxySpy = jest.spyOn(builder, 'post')
+
+			expect(builder.postDoc(operationKey, callback)).toEqual(builder)
+			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
+		})
+	})
+
+	describe('#postQuery()', () => {
+		it('should call the #post() method and return the builder', () => {
+			const callback = function () {}
+			const operationKey = 'remove'
+
+			const builder = new _({
+				username: { type: String, required: true },
+			})
+			const proxySpy = jest.spyOn(builder, 'post')
+
+			expect(builder.postQuery(operationKey, callback)).toEqual(builder)
+			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
 		})
 	})
 

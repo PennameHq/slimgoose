@@ -19,6 +19,18 @@ describe('slimgoose', () => {
 		jest.resetAllMocks()
 	})
 
+	describe('#mongoose', () => {
+		it('should be the selected mongoose instance', () => {
+			expect(_.mongoose).toBe(mongooseSelector.mongoose)
+		})
+	})
+
+	describe('#Promise', () => {
+		it('should be the selected mongoose Promise class', () => {
+			expect(_.Promise).toBe(mongooseSelector.Promise)
+		})
+	})
+
 	describe('#schema()', () => {
 		it('should return a SchemaBuilder instance', () => {
 			const builder = _.schema({})
