@@ -597,4 +597,33 @@ describe('schemaBuilder', () => {
 			expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
 		})
 	})
+
+	describe('#run()', () => {
+		it(`should call the provided function with the necessary data`, () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			})
+
+			const myFuncSpy = jest.fn()
+			builder.run(myFuncSpy)
+
+			expect(myFuncSpy).toHaveBeenCalledWith({
+				schema: builder._schema,
+				mongoose: mongooseSelector.mongoose,
+				Schema: mongooseSelector.mongoose.Schema,
+				ObjectId: mongooseSelector.mongoose.Schema.Types.ObjectId,
+				Promise: mongooseSelector.mongoose.Promise,
+			})
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+			})
+
+			expect(builder.run(() => {})).toEqual(builder)
+		})
+	})
 })
