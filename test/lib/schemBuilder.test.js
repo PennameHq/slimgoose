@@ -1,20 +1,16 @@
 /**
- * Jest cheatsheet: https://github.com/sapegin/jest-cheat-sheet/blob/master/Readme.md
+ * helper cheatsheet: https://github.com/sapegin/helper-cheat-sheet/blob/master/Readme.md
  */
 
+const { assert } = require('chai')
 const mongoose = require('mongoose')
 const mongooseSelector = require('../../lib/mongooseSelector')
 const SchemaBuilder = require('../../lib/SchemaBuilder')
-const helper = require('../helper')
+const helper = require('../helper')()
+const { withStubs, expect } = helper
 
 describe('schemaBuilder', () => {
 	const _ = SchemaBuilder
-
-	afterEach(() => {
-		jest.resetModules()
-		jest.resetAllMocks()
-		jest.clearAllMocks()
-	})
 
 	const printBuilderSchema = (builder) => {
 		helper.printJson(builder._schema)
@@ -31,85 +27,62 @@ describe('schemaBuilder', () => {
 			}
 			const builder = new _(schema)
 
-			expect(builder._schema.obj).toMatchObject({
-				username: {
-					index: true,
-					required: true,
-				},
-				email: {
-					required: true,
-				},
-				name: {},
-				age: {},
-				dateOfBirth: {},
-			})
-			expect(builder._schema.paths._id).toMatchObject({
+			assert.deepEqual(builder._schema.obj, schema)
+			helper.assertDeepEqualObject(builder._schema.paths._id, true, {
 				path: '_id',
 				instance: 'ObjectID',
 			})
-			expect(builder._schema.paths.username).toMatchObject({
+
+			helper.assertDeepEqualObject(builder._schema.paths.username, true, {
 				enumValues: [],
 				regExp: null,
 				path: 'username',
 				instance: 'String',
-
-				options: {
-					required: true,
-				},
 				_index: true,
 				isRequired: true,
 				originalRequiredValue: true,
 			})
-			expect(builder._schema.paths.email).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.paths.email, true, {
 				enumValues: [],
 				regExp: null,
 				path: 'email',
 				instance: 'String',
-				validators: [
-					{
-						message: 'Path `{PATH}` is required.',
-						type: 'required',
-					},
-				],
 
-				options: {
-					required: true,
-				},
 				_index: null,
 				isRequired: true,
 				originalRequiredValue: true,
 			})
-			expect(builder._schema.paths.name).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.paths.name, true, {
 				enumValues: [],
 				regExp: null,
 				path: 'name',
 				instance: 'String',
 				_index: null,
 			})
-			expect(builder._schema.paths.age).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.paths.age, true, {
 				path: 'age',
 				instance: 'Number',
 
 				_index: null,
 			})
-			expect(builder._schema.paths.dateOfBirth).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.paths.dateOfBirth, true, {
 				path: 'dateOfBirth',
 				instance: 'Date',
 				_index: null,
 			})
 
 			// Provided by opts
-			expect(builder._schema.paths.createdAt).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.paths.createdAt, true, {
 				path: 'createdAt',
 				instance: 'Date',
 				_index: null,
 			})
-			expect(builder._schema.paths.updatedAt).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.paths.updatedAt, true, {
 				path: 'updatedAt',
 				instance: 'Date',
 				_index: null,
 			})
-			expect(builder._schema.$timestamps).toMatchObject({
+			helper.assertDeepEqualObject(builder._schema.$timestamps, true, {
 				createdAt: 'createdAt',
 				updatedAt: 'updatedAt',
 			})
@@ -119,9 +92,9 @@ describe('schemaBuilder', () => {
 			const schema = { username: { type: String, required: true } }
 			const builder = new _(schema, { timestamps: false })
 
-			expect(builder._schema.$timestamps).toBeUndefined()
-			expect(builder._schema.paths.createdAt).toBeUndefined()
-			expect(builder._schema.paths.updatedAt).toBeUndefined()
+			assert.isUndefined(builder._schema.$timestamps)
+			assert.isUndefined(builder._schema.paths.createdAt)
+			assert.isUndefined(builder._schema.paths.updatedAt)
 		})
 	})
 
@@ -149,39 +122,41 @@ describe('schemaBuilder', () => {
 			builder.methods(methods)
 
 			Object.keys(methods).forEach((key) => {
-				expect(builder._schema.methods[key]).toBeInstanceOf(Function)
+				expect(builder._schema.methods[key]).to.be.instanceOf(Function)
 			})
 		})
 
-		it('should calls the correct mongoose.Schema function', () => {
-			const methodSpy = jest.spyOn(mongoose.Schema.prototype, 'method')
+		it(
+			'should call the correct mongoose.Schema function',
+			withStubs(() => {
+				const methods = {
+					loadMyFeed({ from, limit }) {
+						return this.find({ username: { $gte: from } })
+							.limit(limit)
+							.exec()
+					},
+					coolBeans() {
+						return this.find()
+					},
+				}
 
-			const methods = {
-				loadMyFeed({ from, limit }) {
-					return this.find({ username: { $gte: from } })
-						.limit(limit)
-						.exec()
-				},
-				coolBeans() {
-					return this.find()
-				},
-			}
-
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).methods(methods)
-
-			expect(methodSpy).toHaveBeenCalledWith(methods)
-		})
+				const builder = new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).methods(methods)
+				Object.entries(methods).forEach(([key, value]) => {
+					expect(builder._schema.methods[key]).to.equal(value)
+				})
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, index: true, required: true },
 			})
 
-			expect(
+			assert.deepEqual(
 				builder.methods({
 					loadMyFeed({ from, limit }) {
 						return this.find({ username: { $gte: from } })
@@ -189,7 +164,8 @@ describe('schemaBuilder', () => {
 							.exec()
 					},
 				}),
-			).toEqual(builder)
+				builder,
+			)
 		})
 	})
 
@@ -217,39 +193,42 @@ describe('schemaBuilder', () => {
 			builder.staticMethods(methods)
 
 			Object.keys(methods).forEach((key) => {
-				expect(builder._schema.statics[key]).toBeInstanceOf(Function)
+				expect(builder._schema.statics[key]).to.be.instanceOf(Function)
 			})
 		})
 
-		it('should calls the correct mongoose.Schema method', () => {
-			const staticSpy = jest.spyOn(mongoose.Schema.prototype, 'static')
+		it(
+			'should calls the correct mongoose.Schema method',
+			withStubs(() => {
+				const staticSpy = helper.spy(mongoose.Schema.prototype, 'static')
 
-			const methods = {
-				loadMyFeed({ from, limit }) {
-					return this.find({ username: { $gte: from } })
-						.limit(limit)
-						.exec()
-				},
-				coolBeans() {
-					return this.find()
-				},
-			}
+				const methods = {
+					loadMyFeed({ from, limit }) {
+						return this.find({ username: { $gte: from } })
+							.limit(limit)
+							.exec()
+					},
+					coolBeans() {
+						return this.find()
+					},
+				}
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).staticMethods(methods)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).staticMethods(methods)
 
-			expect(staticSpy).toHaveBeenCalledWith(methods)
-		})
+				assert.deepEqual(staticSpy.lastCall.args, [methods])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, index: true, required: true },
 			})
 
-			expect(
+			assert.deepEqual(
 				builder.staticMethods({
 					loadMyFeed({ from, limit }) {
 						return this.find({ username: { $gte: from } })
@@ -257,7 +236,8 @@ describe('schemaBuilder', () => {
 							.exec()
 					},
 				}),
-			).toEqual(builder)
+				builder,
+			)
 		})
 	})
 
@@ -278,8 +258,7 @@ describe('schemaBuilder', () => {
 
 			Object.keys(fields).entries(([key, value]) => {
 				const staticField = builder._schema.statics[key]
-				expect(staticField).toBe(value)
-				expect(staticField).not.toBeUndefined()
+				expect(staticField).to.equal(value)
 			})
 		})
 
@@ -288,59 +267,66 @@ describe('schemaBuilder', () => {
 				username: { type: String, index: true, required: true },
 			})
 
-			expect(
+			assert.deepEqual(
 				builder.staticFields({
 					foo: 'bar',
 				}),
-			).toEqual(builder)
+				builder,
+			)
 		})
 	})
 
 	describe('#index()', () => {
-		it('should calls the correct mongoose.Schema function', () => {
-			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'index')
-			const indices = { username: 1 }
-			const opts = { foo: 'bar' }
+		it(
+			'should calls the correct mongoose.Schema function',
+			withStubs(() => {
+				const proxySpy = helper.spy(mongoose.Schema.prototype, 'index')
+				const indices = { username: 1 }
+				const opts = { foo: 'bar' }
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).index(indices, opts)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).index(indices, opts)
 
-			expect(proxySpy).toHaveBeenCalledWith(indices, opts)
-		})
+				assert.deepEqual(proxySpy.lastCall.args, [indices, opts])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, required: true },
 			})
 
-			expect(builder.index({ username: 1 })).toEqual(builder)
+			assert.deepEqual(builder.index({ username: 1 }), builder)
 		})
 	})
 
 	describe('#setOption()', () => {
-		it('should calls the correct mongoose.Schema function', () => {
-			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'set')
-			const key = 'timestamps'
-			const value = true
+		it(
+			'should calls the correct mongoose.Schema function',
+			withStubs(() => {
+				const proxySpy = helper.spy(mongoose.Schema.prototype, 'set')
+				const key = 'timestamps'
+				const value = true
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).setOption(key, value)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).setOption(key, value)
 
-			expect(proxySpy).toHaveBeenCalledWith(key, value)
-		})
+				assert.deepEqual(proxySpy.lastCall.args, [key, value])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, required: true },
 			})
 
-			expect(builder.setOption('timestamps', true)).toEqual(builder)
+			assert.equal(builder.setOption('timestamps', true), builder)
 		})
 	})
 
@@ -351,178 +337,204 @@ describe('schemaBuilder', () => {
 			}
 		}
 
-		it('should calls the correct mongoose.Schema function', () => {
-			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'loadClass')
+		it(
+			'should calls the correct mongoose.Schema function',
+			withStubs(() => {
+				const proxySpy = helper.stub(mongoose.Schema.prototype, 'loadClass').callsFake()
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).useClass(myClass)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).useClass(myClass)
 
-			expect(proxySpy).toHaveBeenCalledWith(myClass)
-		})
+				assert.deepEqual(proxySpy.lastCall.args, [myClass])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, required: true },
 			})
 
-			expect(builder.setOption(myClass)).toEqual(builder)
+			assert.deepEqual(builder.setOption(myClass), builder)
 		})
 	})
 
 	describe('#plugin()', () => {
-		it('should calls the correct mongoose.Schema function', () => {
-			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'plugin')
-			const plugin = (schema) => 'cool'
-			const opts = { foo: 'bar' }
+		it(
+			'should calls the correct mongoose.Schema function',
+			withStubs(() => {
+				const proxySpy = helper.spy(mongoose.Schema.prototype, 'plugin')
+				const plugin = (schema) => 'cool'
+				const opts = { foo: 'bar' }
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).plugin(plugin, opts)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).plugin(plugin, opts)
 
-			expect(proxySpy).toHaveBeenCalledWith(plugin, opts)
-		})
+				assert.deepEqual(proxySpy.lastCall.args, [plugin, opts])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, required: true },
 			})
 
-			expect(builder.plugin(() => 1)).toEqual(builder)
+			assert.deepEqual(
+				builder.plugin(() => 1),
+				builder,
+			)
 		})
 	})
 
 	describe('#pre()', () => {
-		it('should calls the correct mongoose.Schema function', () => {
-			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'pre')
-			const callback = function () {
-				return Promise.resolve()
-			}
-			const operationKey = 'save'
+		it(
+			'should calls the correct mongoose.Schema function',
+			withStubs(() => {
+				const proxySpy = helper.spy(mongoose.Schema.prototype, 'pre')
+				const callback = function () {
+					return Promise.resolve()
+				}
+				const operationKey = 'save'
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).pre(operationKey, callback)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).pre(operationKey, callback)
 
-			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
-		})
+				assert.deepEqual(proxySpy.lastCall.args, [operationKey, callback])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, required: true },
 			})
 
-			expect(
+			assert.deepEqual(
 				builder.pre('save', function (next) {
 					next()
 				}),
-			).toEqual(builder)
+
+				builder,
+			)
 		})
 	})
 
 	describe('#post()', () => {
-		it('should calls the correct mongoose.Schema function', () => {
-			const proxySpy = jest.spyOn(mongoose.Schema.prototype, 'post')
-			const callback = function () {
-				return Promise.resolve()
-			}
-			const operationKey = 'remove'
+		it(
+			'should calls the correct mongoose.Schema function',
+			withStubs(() => {
+				const proxySpy = helper.spy(mongoose.Schema.prototype, 'post')
+				const callback = function () {
+					return Promise.resolve()
+				}
+				const operationKey = 'remove'
 
-			new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			}).post(operationKey, callback)
+				new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				}).post(operationKey, callback)
 
-			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
-		})
+				assert.deepEqual(proxySpy.lastCall.args, [operationKey, callback])
+			}),
+		)
 
 		it('should return the builder', () => {
 			const builder = new _({
 				username: { type: String, required: true },
 			})
 
-			expect(
+			assert.deepEqual(
 				builder.post('validate', function (next) {
 					next()
 				}),
-			).toEqual(builder)
+				builder,
+			)
 		})
 	})
 
 	describe('#preDoc()', () => {
-		it('should call the #pre() method and return the builder', () => {
-			const callback = function () {}
-			const operationKey = 'remove'
+		it(
+			'should call the #pre() method and return the builder',
+			withStubs(() => {
+				const callback = function () {}
+				const operationKey = 'remove'
 
-			const builder = new _({
-				username: { type: String, required: true },
-			})
-			const proxySpy = jest.spyOn(builder, 'pre')
+				const builder = new _({
+					username: { type: String, required: true },
+				})
+				const proxySpy = helper.spy(builder, 'pre')
 
-			expect(builder.preDoc(operationKey, callback)).toEqual(builder)
-			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
-		})
+				assert.deepEqual(builder.preDoc(operationKey, callback), builder)
+				assert.deepEqual(proxySpy.lastCall.args, [operationKey, callback])
+			}),
+		)
 	})
 
 	describe('#preQuery()', () => {
-		it('should call the #pre() method and return the builder', () => {
-			const callback = function () {}
-			const operationKey = 'remove'
+		it(
+			'should call the #pre() method and return the builder',
+			withStubs(() => {
+				const callback = function () {}
+				const operationKey = 'remove'
 
-			const builder = new _({
-				username: { type: String, required: true },
-			})
-			const proxySpy = jest.spyOn(builder, 'pre')
+				const builder = new _({
+					username: { type: String, required: true },
+				})
+				const proxySpy = helper.spy(builder, 'pre')
 
-			expect(builder.preQuery(operationKey, callback)).toEqual(builder)
-			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
-		})
+				assert.deepEqual(builder.preQuery(operationKey, callback), builder)
+				assert.deepEqual(proxySpy.lastCall.args, [operationKey, callback])
+			}),
+		)
 	})
 
 	describe('#postDoc()', () => {
-		it('should call the #post() method and return the builder', () => {
-			const callback = function () {}
-			const operationKey = 'remove'
+		it(
+			'should call the #post() method and return the builder',
+			withStubs(() => {
+				const callback = function () {}
+				const operationKey = 'remove'
 
-			const builder = new _({
-				username: { type: String, required: true },
-			})
-			const proxySpy = jest.spyOn(builder, 'post')
+				const builder = new _({
+					username: { type: String, required: true },
+				})
+				const proxySpy = helper.spy(builder, 'post')
 
-			expect(builder.postDoc(operationKey, callback)).toEqual(builder)
-			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
-		})
+				assert.deepEqual(builder.postDoc(operationKey, callback), builder)
+				assert.deepEqual(proxySpy.lastCall.args, [operationKey, callback])
+			}),
+		)
 	})
 
 	describe('#postQuery()', () => {
-		it('should call the #post() method and return the builder', () => {
-			const callback = function () {}
-			const operationKey = 'remove'
+		it(
+			'should call the #post() method and return the builder',
+			withStubs(() => {
+				const callback = function () {}
+				const operationKey = 'remove'
 
-			const builder = new _({
-				username: { type: String, required: true },
-			})
-			const proxySpy = jest.spyOn(builder, 'post')
+				const builder = new _({
+					username: { type: String, required: true },
+				})
+				const proxySpy = helper.spy(builder, 'post')
 
-			expect(builder.postQuery(operationKey, callback)).toEqual(builder)
-			expect(proxySpy).toHaveBeenCalledWith(operationKey, callback)
-		})
+				assert.deepEqual(builder.postQuery(operationKey, callback), builder)
+				assert.deepEqual(proxySpy.lastCall.args, [operationKey, callback])
+			}),
+		)
 	})
 
 	describe('#toModel()', () => {
 		describe('when only a model name is provided', () => {
 			it(`should call the mongoose.model method with the provided name and the builder's schema`, () => {
-				const modelSpy = jest.spyOn(mongoose, 'model').mockImplementation(() => ({
-					foo: 'bar',
-				}))
-
 				const builder = new _({
 					username: { type: String, index: true, required: true },
 					email: { type: String, required: true },
@@ -530,28 +542,36 @@ describe('schemaBuilder', () => {
 				})
 
 				const modelName = `boss_user_${Date.now()}`
-				builder.toModel(modelName)
+				const model = builder.toModel(modelName)
 
-				expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+				expect(mongoose.modelNames()).to.contain(modelName)
+				expect(model.modelName).to.equal(modelName)
+				expect(model.schema).to.equal(builder._schema)
+
+				expect(model).to.be.instanceOf(Function)
+				expect(model.init).to.be.instanceOf(Function)
+				expect(model.db).to.equal(builder._mongoose.connection)
 			})
 		})
 
 		describe('when config object is provided with only a model name', () => {
-			it(`should call the mongoose.Connection.model method with the provided name and the builder's schema`, () => {
-				const modelSpy = jest.spyOn(mongoose, 'model').mockImplementation(() => ({
-					foo: 'bar',
-				}))
+			it(`should return a mongoose.model instance with the provided name and the builder's schema`, () => {
 				const builder = new _({
 					username: { type: String, index: true, required: true },
 					email: { type: String, required: true },
 					age: { type: Number },
 				})
 
-				const modelName = `boss_user_${Date.now()}`
+				const modelName = `the_posts_${Date.now()}`
+				const model = builder.toModel({ name: modelName })
 
-				builder.toModel({ name: modelName })
+				expect(mongoose.modelNames()).to.contain(modelName)
+				expect(model.modelName).to.equal(modelName)
+				expect(model.schema).to.equal(builder._schema)
 
-				expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+				expect(model).to.be.instanceOf(Function)
+				expect(model.init).to.be.instanceOf(Function)
+				expect(model.db).to.equal(builder._mongoose.connection)
 			})
 		})
 
@@ -563,39 +583,46 @@ describe('schemaBuilder', () => {
 					age: { type: Number },
 				})
 
-				const modelName = `boss_user_${Date.now()}`
+				const modelName = `boss_user_3${Date.now()}`
 				const connection = mongoose.createConnection()
 
-				const modelSpy = jest.spyOn(connection, 'model').mockImplementation(() => ({
-					foo: 'bar',
-				}))
+				const model = builder.toModel({ name: modelName, connection })
 
-				builder.toModel({ name: modelName, connection })
+				expect(connection.modelNames()).to.contain(modelName)
+				expect(model.modelName).to.equal(modelName)
+				expect(model.schema).to.equal(builder._schema)
 
-				expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+				expect(model).to.be.instanceOf(Function)
+				expect(model.init).to.be.instanceOf(Function)
+				expect(model.db).to.equal(connection)
 			})
 		})
 	})
 
 	describe('#toModelWithConnection()', () => {
-		it(`should call the mongoose.Connection.model method with the provided name and the builder's schema`, () => {
-			const builder = new _({
-				username: { type: String, index: true, required: true },
-				email: { type: String, required: true },
-				age: { type: Number },
-			})
+		it(
+			`should call the builder's #toModel() method with the provided name and connection as the config`,
+			withStubs(() => {
+				const builder = new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				})
 
-			const modelName = `boss_user_${Date.now()}`
-			const connection = mongoose.createConnection()
+				const modelName = `boss_user_${Date.now()}`
+				const connection = mongoose.createConnection()
 
-			const modelSpy = jest.spyOn(connection, 'model').mockImplementation(() => ({
-				foo: 'bar',
-			}))
+				const expectedModel = {
+					foo: `bar_${Date.now()}`,
+				}
+				const modelSpy = helper.stub(builder, 'toModel').callsFake(() => expectedModel)
 
-			builder.toModelWithConnection(modelName, connection)
+				const model = builder.toModelWithConnection(modelName, connection)
 
-			expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
-		})
+				assert.deepEqual(modelSpy.lastCall.args, [{ name: modelName, connection }])
+				expect(model, expectedModel)
+			}),
+		)
 	})
 
 	describe('#run()', () => {
@@ -606,16 +633,18 @@ describe('schemaBuilder', () => {
 				age: { type: Number },
 			})
 
-			const myFuncSpy = jest.fn()
+			const myFuncSpy = helper.stub()
 			builder.run(myFuncSpy)
 
-			expect(myFuncSpy).toHaveBeenCalledWith({
-				schema: builder._schema,
-				mongoose: mongooseSelector.mongoose,
-				Schema: mongooseSelector.mongoose.Schema,
-				ObjectId: mongooseSelector.mongoose.Schema.Types.ObjectId,
-				Promise: mongooseSelector.mongoose.Promise,
-			})
+			assert.deepEqual(myFuncSpy.lastCall.args, [
+				{
+					schema: builder._schema,
+					mongoose: mongooseSelector.mongoose,
+					Schema: mongooseSelector.mongoose.Schema,
+					ObjectId: mongooseSelector.mongoose.Schema.Types.ObjectId,
+					Promise: mongooseSelector.mongoose.Promise,
+				},
+			])
 		})
 
 		it('should return the builder', () => {
@@ -623,7 +652,10 @@ describe('schemaBuilder', () => {
 				username: { type: String, index: true, required: true },
 			})
 
-			expect(builder.run(() => {})).toEqual(builder)
+			assert.deepEqual(
+				builder.run(() => {}),
+				builder,
+			)
 		})
 	})
 })

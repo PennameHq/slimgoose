@@ -1,7 +1,8 @@
+'use strict'
+
 module.exports = {
-    exit: true,
-    slow: 1000,
-    recursive: true,
-    require: '@babel/register',
-    package: './package.json',
+	exit: true,
+	slow: 1000,
+	recursive: true,
+	package: './package.json',
 }

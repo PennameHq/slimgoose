@@ -1,5 +1,5 @@
 /**
- * Jest cheatsheet: https://github.com/sapegin/jest-cheat-sheet/blob/master/Readme.md
+ * helper cheatsheet: https://github.com/sapegin/helper-cheat-sheet/blob/master/Readme.md
  */
 
 const Q = require('q')
@@ -8,213 +8,250 @@ const mongooseSelector = require('../../lib/mongooseSelector')
 const mongoose = require('mongoose')
 const SchemaBuilder = require('../../lib/SchemaBuilder')
 const testDatabaseHelper = require('../../lib/testDatabaseHelper')
+const { assert } = require('chai')
 
+const helper = require('../helper')()
+const { withStubs, expect } = helper
 describe('slimgoose', () => {
 	const _ = slimgoose
 
-	const getFreezeMongooseSpy = () => jest.spyOn(mongooseSelector, 'freeze')
-
-	beforeEach(() => {
-		jest.resetModules()
-		jest.resetAllMocks()
-	})
+	const getFreezeMongooseSpy = () => helper.spy(mongooseSelector, 'freeze')
 
 	describe('#mongoose', () => {
 		it('should be the selected mongoose instance', () => {
-			expect(_.mongoose).toBe(mongooseSelector.mongoose)
+			expect(_.mongoose).to.equal(mongooseSelector.mongoose)
 		})
 	})
 
 	describe('#Promise', () => {
 		it('should be the selected mongoose Promise class', () => {
-			expect(_.Promise).toBe(mongooseSelector.Promise)
+			expect(_.Promise).to.equal(mongooseSelector.Promise)
 		})
 	})
 
 	describe('#schema()', () => {
 		it('should return a SchemaBuilder instance', () => {
 			const builder = _.schema({})
-			expect(builder).toBeInstanceOf(SchemaBuilder)
+			expect(builder).to.be.instanceOf(SchemaBuilder)
 		})
 
-		it('should freeze the mongoose instance', () => {
-			const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
-			_.schema({})
+		it(
+			'should freeze the mongoose instance',
+			withStubs(() => {
+				const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
+				_.schema({})
 
-			expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-		})
+				expect(mongooseSelectorFreezeSpy.calledOnce)
+			}),
+		)
 	})
 
 	describe('#useMongoose()', () => {
-		it('should call the appropriate proxy to use the provided mongoose instance', () => {
-			const mongooseSelectorUseSpy = jest.spyOn(mongooseSelector, 'use').mockImplementation()
+		it(
+			'should call the appropriate proxy to use the provided mongoose instance',
+			withStubs(() => {
+				const mongooseSelectorUseSpy = helper.stub(mongooseSelector, 'use').callsFake()
 
-			const mongooseInstance = mongoose
-			_.useMongoose(mongooseInstance)
-			expect(mongooseSelectorUseSpy).toHaveBeenCalledWith(mongooseInstance)
-		})
+				const mongooseInstance = mongoose
+				_.useMongoose(mongooseInstance)
+				assert.deepEqual(mongooseSelectorUseSpy.lastCall.args, [mongooseInstance])
+			}),
+		)
 	})
 
 	describe('#useMongoosePromise()', () => {
-		it('should call the appropriate proxy to use the provided Promise class for the selected mongoose object', () => {
-			const mongooseSelectorUsePromiseClassSpy = jest
-				.spyOn(mongooseSelector, 'usePromiseClass')
-				.mockImplementation()
+		it(
+			'should call the appropriate proxy to use the provided Promise class for the selected mongoose object',
+			withStubs(() => {
+				const mongooseSelectorUsePromiseClassSpy = helper
+					.stub(mongooseSelector, 'usePromiseClass')
+					.callsFake()
 
-			const promiseClass = Q
-			_.useMongoosePromise(promiseClass)
-			expect(mongooseSelectorUsePromiseClassSpy).toHaveBeenCalledWith(promiseClass)
-		})
+				const promiseClass = Q
+				_.useMongoosePromise(promiseClass)
+				assert.deepEqual(mongooseSelectorUsePromiseClassSpy.lastCall.args, [promiseClass])
+			}),
+		)
 	})
 
 	describe('#connect()', () => {
-		it('should call the appropriate proxy to connect to the default mongoose connection', async () => {
-			const connectSpy = jest.spyOn(mongoose, 'connect').mockImplementation(Q.resolve)
-			const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
-
-			const uri = `mongo://${Date.now()}abc:123`
-			const opts = { foo: 'bar' }
-
-			expect(_.connected).toBe(false)
-
-			const result = await _.connect(uri, opts)
-			expect(connectSpy).toHaveBeenCalledWith(uri, {
-				useNewUrlParser: true,
-				...opts,
-			})
-
-			expect(_.connected).toBe(true)
-
-			expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-		})
-	})
-
-	describe('#createConnection()', () => {
-		describe('when a uri and opts are provided', () => {
-			it('should call the appropriate proxy to create the connection using the provided uri and opts', async () => {
-				const expectedResult = { open: () => {}, now: Date.now() }
-				const createConnectionSpy = jest
-					.spyOn(mongoose, 'createConnection')
-					.mockImplementation(() => expectedResult)
+		it(
+			'should call the appropriate proxy to connect to the default mongoose connection',
+			withStubs(async () => {
+				const connectSpy = helper.stub(mongoose, 'connect').resolves()
 				const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
 
 				const uri = `mongo://${Date.now()}abc:123`
 				const opts = { foo: 'bar' }
 
-				expect(_.createConnection(uri, opts)).toBe(expectedResult)
-				expect(createConnectionSpy).toHaveBeenCalledWith(uri, {
-					useNewUrlParser: true,
-					...opts,
-				})
+				expect(_.connected).to.equal(false)
 
-				expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-			})
+				const result = await _.connect(uri, opts)
+				assert.deepEqual(connectSpy.lastCall.args, [
+					uri,
+					{
+						useNewUrlParser: true,
+						...opts,
+					},
+				])
+
+				expect(_.connected).to.equal(true)
+
+				assert.isTrue(mongooseSelectorFreezeSpy.calledOnce)
+			}),
+		)
+	})
+
+	describe('#createConnection()', () => {
+		describe('when a uri and opts are provided', () => {
+			it(
+				'should call the appropriate proxy to create the connection using the provided uri and opts',
+				withStubs(async () => {
+					const expectedResult = { open: () => {}, now: Date.now() }
+					const createConnectionSpy = helper
+						.stub(mongoose, 'createConnection')
+						.callsFake(() => expectedResult)
+					const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
+
+					const uri = `mongo://${Date.now()}abc:123`
+					const opts = { foo: 'bar' }
+
+					expect(_.createConnection(uri, opts)).to.equal(expectedResult)
+					assert.deepEqual(createConnectionSpy.lastCall.args, [
+						uri,
+						{
+							useNewUrlParser: true,
+							...opts,
+						},
+					])
+
+					assert.isTrue(mongooseSelectorFreezeSpy.calledOnce)
+				}),
+			)
 		})
 
 		describe('when uri and opts are not provided', () => {
-			it('should call the appropriate proxy to create the connection without configuration', async () => {
-				const expectedResult = { open: () => {}, now: Date.now() }
-				const createConnectionSpy = jest
-					.spyOn(mongoose, 'createConnection')
-					.mockImplementation(() => expectedResult)
-				const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
+			it(
+				'should call the appropriate proxy to create the connection without configuration',
+				withStubs(async () => {
+					const expectedResult = { open: () => {}, now: Date.now() }
+					const createConnectionSpy = helper
+						.stub(mongoose, 'createConnection')
+						.callsFake(() => expectedResult)
+					const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
 
-				expect(_.createConnection()).toBe(expectedResult)
-				expect(createConnectionSpy).toHaveBeenCalledWith()
+					expect(_.createConnection()).to.equal(expectedResult)
+					assert.deepEqual(createConnectionSpy.lastCall.args, [])
 
-				expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-			})
+					assert.isTrue(mongooseSelectorFreezeSpy.calledOnce)
+				}),
+			)
 		})
 
 		describe('when only opts are provided', () => {
-			it('should call the appropriate proxy to create the connection without configuration', async () => {
-				const expectedResult = { open: () => {}, now: Date.now() }
-				const createConnectionSpy = jest
-					.spyOn(mongoose, 'createConnection')
-					.mockImplementation(() => expectedResult)
-				const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
+			it(
+				'should call the appropriate proxy to create the connection without configuration',
+				withStubs(async () => {
+					const expectedResult = { open: () => {}, now: Date.now() }
+					const createConnectionSpy = helper
+						.stub(mongoose, 'createConnection')
+						.callsFake(() => expectedResult)
+					const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
 
-				const opts = { foo: 'bar' }
-				expect(_.createConnection(undefined, opts)).toBe(expectedResult)
+					const opts = { foo: 'bar' }
+					expect(_.createConnection(undefined, opts)).to.equal(expectedResult)
 
-				expect(createConnectionSpy).toHaveBeenCalledWith()
+					assert.deepEqual(createConnectionSpy.lastCall.args, [])
 
-				expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-			})
+					assert.isTrue(mongooseSelectorFreezeSpy.calledOnce)
+				}),
+			)
 		})
 	})
 
 	describe('#openConnection()', () => {
-		it('should call the appropriate proxy to connect to the default mongoose connection', async () => {
-			const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
+		it(
+			'should call the appropriate proxy to connect to the default mongoose connection',
+			withStubs(async () => {
+				const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
 
-			const expectedResult = {
-				uri: '//example.mongodb',
-				now: Date.now(),
-			}
-			const createConnectionSpy = jest.spyOn(_, 'createConnection').mockImplementation(() => ({
-				open: () => Q.resolve(expectedResult),
-			}))
+				const expectedResult = {
+					uri: '//example.mongodb',
+					now: Date.now(),
+				}
+				const createConnectionSpy = helper.stub(_, 'createConnection').callsFake(() => ({
+					open: () => Q.resolve(expectedResult),
+				}))
 
-			const uri = `mongo://${Date.now()}abc:123`
-			const opts = { foo: 'bar' }
+				const uri = `mongo://${Date.now()}abc:123`
+				const opts = { foo: 'bar' }
 
-			const result = await _.openConnection(uri, opts)
-			expect(result).toBe(expectedResult)
-			expect(createConnectionSpy).toHaveBeenCalledWith(uri, opts)
+				const result = await _.openConnection(uri, opts)
+				expect(result).to.equal(expectedResult)
+				assert.deepEqual(createConnectionSpy.lastCall.args, [uri, opts])
 
-			expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-		})
+				assert.isTrue(mongooseSelectorFreezeSpy.calledOnce)
+			}),
+		)
 	})
 
 	describe('#connectDefaultForTest()', () => {
-		it('should call the appropriate proxy to connect to the default mongoose connection to a test mongod server', async () => {
-			const connectSpy = jest.spyOn(_, 'connect').mockImplementation(Q.resolve)
-			const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
+		it(
+			'should call the appropriate proxy to connect to the default mongoose connection to a test mongod server',
+			withStubs(async () => {
+				const connectSpy = helper.stub(_, 'connect').callsFake(Q.resolve)
+				const mongooseSelectorFreezeSpy = getFreezeMongooseSpy()
 
-			const opts = { foo: 'bar' }
+				const opts = { foo: 'bar' }
 
-			expect(_._hasDefaultTestConnection).toBe(false)
+				expect(_._hasDefaultTestConnection).to.equal(false)
 
-			await _.connectDefaultForTest(opts)
-			expect(connectSpy).toHaveBeenCalled()
+				await _.connectDefaultForTest(opts)
+				assert.isTrue(connectSpy.calledOnce)
 
-			const callArgs = connectSpy.mock.calls[0]
-			expect(callArgs[1]).toBe(opts)
-			const createdConnectionUri = callArgs[0]
+				const callArgs = connectSpy.lastCall.args
+				expect(callArgs[1]).to.equal(opts)
+				const createdConnectionUri = callArgs[0]
 
-			expect(createdConnectionUri.startsWith('mongodb://127.0.0.1:')).toBe(true)
-			expect(createdConnectionUri.length).toBeGreaterThanOrEqual(30)
+				expect(createdConnectionUri.startsWith('mongodb://127.0.0.1:')).to.equal(true)
+				assert.isAtLeast(createdConnectionUri.length, 30)
 
-			expect(_._hasDefaultTestConnection).toBe(true)
+				expect(_._hasDefaultTestConnection).to.equal(true)
 
-			expect(mongooseSelectorFreezeSpy).toHaveBeenCalled()
-		})
+				assert.isTrue(mongooseSelectorFreezeSpy.calledOnce)
+			}),
+		)
 	})
 
 	describe('#resetDefaultForTest()', () => {
-		it('should call the correct function to reset the test mongod connection database when one has been created', async () => {
-			const resetDefaultDatabaseSpy = jest
-				.spyOn(testDatabaseHelper, 'resetDefaultDatabase')
-				.mockImplementation(Q.resolve)
+		it(
+			'should call the correct function to reset the test mongod connection database when one has been created',
+			withStubs(async () => {
+				const resetDefaultDatabaseSpy = helper
+					.stub(testDatabaseHelper, 'resetDefaultDatabase')
+					.resolves()
 
-			_._hasDefaultTestConnection = true
+				_._hasDefaultTestConnection = true
 
-			await _.resetDefaultForTest()
+				await _.resetDefaultForTest()
 
-			expect(resetDefaultDatabaseSpy).toHaveBeenCalled()
-		})
+				assert.isTrue(resetDefaultDatabaseSpy.calledOnce)
+			}),
+		)
 
-		it('should not call the function to reset the test mongod connection database when one has not been created', async () => {
-			const resetDefaultDatabaseSpy = jest
-				.spyOn(testDatabaseHelper, 'resetDefaultDatabase')
-				.mockImplementation(Q.resolve)
+		it(
+			'should not call the function to reset the test mongod connection database when one has not been created',
+			withStubs(async () => {
+				const resetDefaultDatabaseSpy = helper
+					.stub(testDatabaseHelper, 'resetDefaultDatabase')
+					.resolves()
 
-			_._hasDefaultTestConnection = false
+				_._hasDefaultTestConnection = false
 
-			await _.resetDefaultForTest()
+				await _.resetDefaultForTest()
 
-			expect(resetDefaultDatabaseSpy).not.toHaveBeenCalled()
-		})
+				assert.isFalse(resetDefaultDatabaseSpy.called)
+			}),
+		)
 	})
 })

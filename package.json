@@ -1,36 +1,42 @@
 {
-  "name": "@penname/slimgoose",
-  "version": "0.1.0",
-  "description": "A slim Mongoose interface to MongoDB",
-  "main": "index.js",
-  "scripts": {
-    "test": "jest --detectOpenHandles --forceExit"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/PennameHq/slimgoose.git"
-  },
-  "keywords": [
-    "mongoose",
-    "mongodb"
-  ],
-  "author": "Penname.me",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/PennameHq/slimgoose/issues"
-  },
-  "homepage": "https://github.com/PennameHq/slimgoose#readme",
-  "devDependencies": {
-    "jest": "^26.6.3",
-    "mongodb-memory-server": "^6.9.2"
-  },
-  "dependencies": {
-    "mongoose": "^5.10.16",
-    "q": "^1.5.1",
-    "ramda": "^0.27.1"
-  },
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  }
+	"name": "@penname/slimgoose",
+	"version": "0.1.0",
+	"description": "A slim Mongoose interface to MongoDB",
+	"main": "index.js",
+	"scripts": {
+		"test": "nyc --reporter=cobertura mocha"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/PennameHq/slimgoose.git"
+	},
+	"keywords": [
+		"mongoose",
+		"mongodb"
+	],
+	"author": "Penname.me",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/PennameHq/slimgoose/issues"
+	},
+	"homepage": "https://github.com/PennameHq/slimgoose#readme",
+	"devDependencies": {
+		"chai": "^4.2.0",
+		"deep-set": "^1.0.1",
+		"eslint": "^7.14.0",
+		"mocha": "^8.2.1",
+		"mongodb-memory-server": "^6.9.2",
+		"nyc": "^15.1.0",
+		"sinon": "^9.2.1",
+		"sinon-test": "^3.0.0"
+	},
+	"dependencies": {
+		"mongoose": "latest",
+		"q": "^1.5.1",
+		"ramda": "^0.27.1"
+	},
+	"directories": {
+		"lib": "lib",
+		"test": "test"
+	}
 }
