@@ -67,6 +67,7 @@ module.exports = () => {
 				// Add spy and stub methods to the testHelper
 				self.spy = this.spy
 				self.stub = this.stub
+				self.replace = this.replace
 
 				this.clock.restore()
 				return testCb.call(this)
@@ -223,7 +224,7 @@ module.exports = () => {
 		 */
 		requireWithInvalidator(pathFromRoot) {
 			const resolvedPath = this.resolvePathFromRoot(pathFromRoot)
-			const invalidate = () => this.invalidateModulesCache(resolvedPath)
+			const invalidate = () => this.invalidateModuleCacheFromRoot(resolvedPath)
 
 			// First, invalidate any existing cache for the module
 			invalidate()
@@ -241,9 +242,19 @@ module.exports = () => {
 		 * @param {String} pathFromRoot The path to the file you need to invalidate
 		 * from the root of the file structure
 		 */
-		invalidateModulesCache(pathFromRoot) {
+		invalidateModuleCacheFromRoot(pathFromRoot) {
 			// Clear the constants module from the cache
 			delete require.cache[this.resolvePathFromRoot(pathFromRoot)]
+		},
+
+		/**
+		 * Invalidate the require(...) cache.
+		 * @param {String} key The path to the file you need to invalidate
+		 * from the root of the file structure
+		 */
+		invalidateModuleCache(key) {
+			// Clear the constants module from the cache
+			delete require.cache[key]
 		},
 
 		/**
@@ -336,7 +347,7 @@ module.exports = () => {
 	helper.resolvePathFromRoot = helper.resolvePathFromRoot.bind(helper)
 	helper.requireFromRoot = helper.requireFromRoot.bind(helper)
 	helper.requireWithInvalidator = helper.requireWithInvalidator.bind(helper)
-	helper.invalidateModulesCache = helper.invalidateModulesCache.bind(helper)
+	helper.invalidateModuleCacheFromRoot = helper.invalidateModuleCacheFromRoot.bind(helper)
 	helper.patchNow = helper.patchNow.bind(helper)
 	helper.expectFail = helper.expectFail.bind(helper)
 	return helper
