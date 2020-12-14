@@ -124,4 +124,133 @@ describe('schemaBuilder', () => {
 			expect(builder._schema.paths.updatedAt).toBeUndefined()
 		})
 	})
+
+	describe('#staticMethods()', () => {
+		it('should add the provided methods as static methods on the schema', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			})
+
+			const methods = {
+				getMyUsernameById(id) {
+					return this.findById(id)
+						.select({ username: 1 })
+						.exec()
+						.then(({ username }) => username)
+				},
+				loadMyFeed({ from, limit }) {
+					return this.find({ username: { $gte: from } })
+						.limit(limit)
+						.exec()
+				},
+			}
+			builder.staticMethods(methods)
+
+			Object.keys(methods).forEach((key) => {
+				expect(builder._schema.statics[key]).toBeInstanceOf(Function)
+			})
+		})
+
+		it('should calls the correct mongoose.Schema method', () => {
+			const staticSpy = jest.spyOn(mongoose.Schema.prototype, 'static')
+
+			const methods = {
+				loadMyFeed({ from, limit }) {
+					return this.find({ username: { $gte: from } })
+						.limit(limit)
+						.exec()
+				},
+				coolBeans() {
+					return this.find()
+				},
+			}
+
+			new _({
+				username: { type: String, index: true, required: true },
+				email: { type: String, required: true },
+				age: { type: Number },
+			}).staticMethods(methods)
+
+			expect(staticSpy).toHaveBeenCalledWith(methods)
+		})
+
+		it('should return the builder', () => {
+			const builder = new _({
+				username: { type: String, index: true, required: true },
+			})
+
+			expect(
+				builder.staticMethods({
+					loadMyFeed({ from, limit }) {
+						return this.find({ username: { $gte: from } })
+							.limit(limit)
+							.exec()
+					},
+				}),
+			).toEqual(builder)
+		})
+	})
+
+	describe('#toModel()', () => {
+		describe('when only a model name is provided', () => {
+			it(`should call the mongoose.model method with the provided name and the builder's schema`, () => {
+				const modelSpy = jest.spyOn(mongoose, 'model').mockImplementation(() => ({
+					foo: 'bar',
+				}))
+
+				const builder = new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				})
+
+				const modelName = `boss_user_${Date.now()}`
+				builder.toModel(modelName)
+
+				expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+			})
+		})
+
+		describe('when config object is provided with only a model name', () => {
+			it(`should call the mongoose.Connection.model method with the provided name and the builder's schema`, () => {
+				const modelSpy = jest.spyOn(mongoose, 'model').mockImplementation(() => ({
+					foo: 'bar',
+				}))
+				const builder = new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				})
+
+				const modelName = `boss_user_${Date.now()}`
+
+				builder.toModel({ name: modelName })
+
+				expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+			})
+		})
+
+		describe('when config object is provided with a model name and mongoose.connection', () => {
+			it(`should call the mongoose.Connection.model method with the provided name and the builder's schema`, () => {
+				const builder = new _({
+					username: { type: String, index: true, required: true },
+					email: { type: String, required: true },
+					age: { type: Number },
+				})
+
+				const modelName = `boss_user_${Date.now()}`
+				const connection = mongoose.createConnection()
+
+				const modelSpy = jest.spyOn(connection, 'model').mockImplementation(() => ({
+					foo: 'bar',
+				}))
+
+				builder.toModel({ name: modelName, connection })
+
+				expect(modelSpy).toHaveBeenCalledWith(modelName, builder._schema)
+			})
+		})
+	})
 })
