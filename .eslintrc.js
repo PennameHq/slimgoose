@@ -5,7 +5,6 @@ module.exports = {
 		node: true,
 		mocha: true,
 	},
-	extends: ['airbnb'],
 	plugins: ['babel', 'import', 'mocha', 'prettier'],
 	parser: 'babel-eslint',
 	parserOptions: {
