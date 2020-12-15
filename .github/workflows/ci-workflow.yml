@@ -22,8 +22,6 @@ jobs:
           scope: '@PennameHq'
       - name: CI
         run: npm ci
-      - name: Lint
-        run: npm run lint
       - name: Unit Tests
         run: npm run test:ci
   build-release:
