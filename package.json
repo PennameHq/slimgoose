@@ -4,7 +4,8 @@
 	"description": "A slim Mongoose interface to MongoDB",
 	"main": "index.js",
 	"scripts": {
-		"test": "nyc --reporter=cobertura mocha"
+		"test": "nyc --reporter=cobertura mocha",
+		"lint": "eslint ."
 	},
 	"repository": {
 		"type": "git",
