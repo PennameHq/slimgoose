@@ -27,6 +27,7 @@
 		"mocha": "^8.2.1",
 		"mongodb-memory-server": "^6.9.2",
 		"nyc": "^15.1.0",
+		"on-change": "^2.2.0",
 		"sinon": "^9.2.1",
 		"sinon-test": "^3.0.0"
 	},
