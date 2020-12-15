@@ -5,6 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "nyc --reporter=cobertura mocha",
+		"test:ci": "nyc --reporter=cobertura mocha --forbid-only",
 		"lint": "eslint ."
 	},
 	"repository": {
