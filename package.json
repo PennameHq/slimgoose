@@ -1,6 +1,6 @@
 {
 	"name": "@penname/slimgoose",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"description": "A slim Mongoose interface to MongoDB",
 	"main": "index.js",
 	"scripts": {
