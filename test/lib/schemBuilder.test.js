@@ -432,7 +432,7 @@ describe('schemaBuilder', () => {
 						.staticMethods(methods)
 						.preStaticMethods(preMethods)
 						.preStaticMethods(preMethods2)
-						.toModel('uxer_s')
+						.toModel('uxer_s2')
 
 					const now = Date.now()
 
