@@ -177,6 +177,98 @@ describe('schemaBuilder', () => {
 				}),
 			)
 
+			it(
+				'should run the corresponding pre middlewares when a method is invoked',
+				withStubs(async () => {
+					let Uxer
+					const methods = {
+						loadSimilarFeed({ from, limit }) {
+							return Uxer.find({ age: this.age, username: { $gte: from } })
+								.limit(limit)
+								.exec()
+						},
+						coolBeans() {
+							return this.find()
+						},
+					}
+
+					const preMethods = {
+						loadSimilarFeed({ data: { results, key, args, context } }) {
+							return Uxer.findOne({ username: args[0].from, age: context.age })
+								.exec()
+								.then(() => args[0])
+						},
+						foo() {
+							return 'bar'
+						},
+					}
+					const preMethods2 = {
+						loadSimilarFeed({ data: { results, key, args, context } }) {
+							return Uxer.findOne({ username: { $ne: args[0].from }, age: context.age - 1 })
+								.exec()
+								.then(() => args)
+						},
+					}
+
+					const spiesMap = Object.keys(preMethods).reduce((map, key) => {
+						map[key] = helper.spy(preMethods, key)
+						return map
+					}, {})
+
+					const spiesMap2 = Object.keys(preMethods2).reduce((map, key) => {
+						map[key] = helper.spy(preMethods2, key)
+						return map
+					}, {})
+
+					Uxer = createBuilder({
+						username: { type: String, index: true, required: true },
+						email: { type: String, required: true },
+						age: { type: Number },
+					})
+						.methods(methods)
+						.preMethods(preMethods)
+						.preMethods(preMethods2)
+						.toModel('uxer_s3')
+
+					const now = Date.now()
+					const findOneSpy = helper.spy(Uxer, 'findOne')
+
+					// Run the static method
+					const rootArgs = { from: now, limit: 11 }
+					const uxerA = new Uxer({ username: 'lwd', email: 'lwd@example.com', age: 24 })
+
+					// Run one of the functions
+					await uxerA.loadSimilarFeed(rootArgs)
+
+					// Ensure the first pre middleware was called on the object correctly
+					assert.isTrue(spiesMap.loadSimilarFeed.calledOnce)
+					assert.deepEqual(spiesMap.loadSimilarFeed.lastCall.args[0].results, [])
+					helper.assertDeepEqualObject(spiesMap.loadSimilarFeed.lastCall.args[0].data, true, {
+						key: 'loadSimilarFeed',
+						context: uxerA,
+					})
+					assert.deepEqual(spiesMap.loadSimilarFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.notEqual(spiesMap.loadSimilarFeed.lastCall.thisValue, Uxer)
+
+					// Ensure the second pre middleware was called on the object correctly
+					assert.isTrue(spiesMap2.loadSimilarFeed.calledOnce)
+					assert.deepEqual(spiesMap2.loadSimilarFeed.lastCall.args[0].results, [rootArgs])
+					helper.assertDeepEqualObject(spiesMap2.loadSimilarFeed.lastCall.args[0].data, true, {
+						key: 'loadSimilarFeed',
+						context: uxerA,
+					})
+					assert.deepEqual(spiesMap2.loadSimilarFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.notEqual(spiesMap2.loadSimilarFeed.lastCall.thisValue, Uxer)
+
+					// Ensure the pre middlewares for other static methods were not called
+					assert.isFalse(spiesMap.foo.called)
+
+					// Ensure the proper data was past to the model's findOne call
+					assert.deepEqual(findOneSpy.getCalls()[0].args, [{ age: 24, username: now }])
+					assert.deepEqual(findOneSpy.getCalls()[1].args, [{ age: 23, username: { $ne: now } }])
+				}),
+			)
+
 			it('should return the builder', () => {
 				const builder = createBuilder({
 					username: { type: String, index: true, required: true },
@@ -277,6 +369,85 @@ describe('schemaBuilder', () => {
 					assert.isTrue(spiesMap.loadMyFeed.calledOnce)
 					assert.deepEqual(spiesMap.loadMyFeed.lastCall.args, [{ from: now, limit: 11 }])
 					assert.equal(spiesMap.loadMyFeed.lastCall.thisValue, model)
+				}),
+			)
+
+			it(
+				'should run the corresponding pre middlewares when a static method is invoked',
+				withStubs(async () => {
+					const methods = {
+						loadMyFeed({ from, limit }) {
+							return this.find({ username: { $gte: from } })
+								.limit(limit)
+								.exec()
+						},
+						coolBeans() {
+							return this.find()
+						},
+					}
+
+					const preMethods = {
+						loadMyFeed({ data: { results, key, args, context } }) {
+							return context.findOne({ username: args[0].from }).then(() => args[0])
+						},
+						foo() {
+							return 'bar'
+						},
+					}
+					const preMethods2 = {
+						loadMyFeed({ data: { results, key, args, context } }) {
+							return context.findOne({ username: { $ne: args[0].from } }).then(() => args)
+						},
+					}
+
+					const spiesMap = Object.keys(preMethods).reduce((map, key) => {
+						map[key] = helper.spy(preMethods, key)
+						return map
+					}, {})
+
+					const spiesMap2 = Object.keys(preMethods2).reduce((map, key) => {
+						map[key] = helper.spy(preMethods2, key)
+						return map
+					}, {})
+
+					const model = createBuilder({
+						username: { type: String, index: true, required: true },
+						email: { type: String, required: true },
+						age: { type: Number },
+					})
+						.staticMethods(methods)
+						.preStaticMethods(preMethods)
+						.preStaticMethods(preMethods2)
+						.toModel('uxer_s')
+
+					const now = Date.now()
+
+					// Run the static method
+					const rootArgs = { from: now, limit: 11 }
+					await model.loadMyFeed(rootArgs)
+
+					// Ensure the first pre middleware was called on the object correctly
+					assert.isTrue(spiesMap.loadMyFeed.calledOnce)
+					assert.deepEqual(spiesMap.loadMyFeed.lastCall.args[0].results, [])
+					helper.assertDeepEqualObject(spiesMap.loadMyFeed.lastCall.args[0].data, true, {
+						key: 'loadMyFeed',
+						context: model,
+					})
+					assert.deepEqual(spiesMap.loadMyFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.notEqual(spiesMap.loadMyFeed.lastCall.thisValue, model)
+
+					// Ensure the second pre middleware was called on the object correctly
+					assert.isTrue(spiesMap2.loadMyFeed.calledOnce)
+					assert.deepEqual(spiesMap2.loadMyFeed.lastCall.args[0].results, [rootArgs])
+					helper.assertDeepEqualObject(spiesMap2.loadMyFeed.lastCall.args[0].data, true, {
+						key: 'loadMyFeed',
+						context: model,
+					})
+					assert.deepEqual(spiesMap2.loadMyFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.notEqual(spiesMap2.loadMyFeed.lastCall.thisValue, model)
+
+					// Ensure the pre middlewares for other static methods were not called
+					assert.isFalse(spiesMap.foo.called)
 				}),
 			)
 
