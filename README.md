@@ -78,7 +78,7 @@ We're still in the process of adding documentation, so please reference the test
 # Roadmap
 
 - Need to add common helper methods of schemas
-- Need to add middleware for methods and static methods.
+- Need to add cachegoose support
 - Need to add more documentation to the README
 
 # Contribute
