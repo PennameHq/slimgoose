@@ -192,8 +192,11 @@ describe('schemaBuilder', () => {
 						},
 					}
 
+					const loadSimilarFeedSpy = helper.spy(methods, 'loadSimilarFeed')
+
 					const preMethods = {
-						loadSimilarFeed({ data: { results, key, args, context } }) {
+						loadSimilarFeed({ results, data: { key, args, context, setNewArguments } }) {
+							setNewArguments([{ ...args[0], secondMiddlewareCalled: results.length + 'dan' }])
 							return Uxer.findOne({ username: args[0].from, age: context.age })
 								.exec()
 								.then(() => args[0])
@@ -203,10 +206,13 @@ describe('schemaBuilder', () => {
 						},
 					}
 					const preMethods2 = {
-						loadSimilarFeed({ data: { results, key, args, context } }) {
+						loadSimilarFeed({ results, data: { key, args, context, setNewArguments } }) {
 							return Uxer.findOne({ username: { $ne: args[0].from }, age: context.age - 1 })
 								.exec()
-								.then(() => args)
+								.then((result) => {
+									setNewArguments([{ ...args[0], secondMiddlewareCalled: results.length + 'linc' }])
+									return result
+								})
 						},
 					}
 
@@ -240,6 +246,10 @@ describe('schemaBuilder', () => {
 					// Run one of the functions
 					await uxerA.loadSimilarFeed(rootArgs)
 
+					assert.deepEqual(loadSimilarFeedSpy.lastCall.args, [
+						{ ...rootArgs, secondMiddlewareCalled: '1linc' },
+					])
+
 					// Ensure the first pre middleware was called on the object correctly
 					assert.isTrue(spiesMap.loadSimilarFeed.calledOnce)
 					assert.deepEqual(spiesMap.loadSimilarFeed.lastCall.args[0].results, [])
@@ -248,6 +258,7 @@ describe('schemaBuilder', () => {
 						context: uxerA,
 					})
 					assert.deepEqual(spiesMap.loadSimilarFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.isFunction(spiesMap.loadSimilarFeed.lastCall.args[0].data.setNewArguments)
 					assert.notEqual(spiesMap.loadSimilarFeed.lastCall.thisValue, Uxer)
 
 					// Ensure the second pre middleware was called on the object correctly
@@ -258,6 +269,7 @@ describe('schemaBuilder', () => {
 						context: uxerA,
 					})
 					assert.deepEqual(spiesMap2.loadSimilarFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.isFunction(spiesMap.loadSimilarFeed.lastCall.args[0].data.setNewArguments)
 					assert.notEqual(spiesMap2.loadSimilarFeed.lastCall.thisValue, Uxer)
 
 					// Ensure the pre middlewares for other static methods were not called
@@ -386,8 +398,10 @@ describe('schemaBuilder', () => {
 						},
 					}
 
+					const loadMyFeedSpy = helper.spy(methods, 'loadMyFeed')
+
 					const preMethods = {
-						loadMyFeed({ data: { results, key, args, context } }) {
+						loadMyFeed({ data: { results, key, args, context, setNewArguments } }) {
 							return context.findOne({ username: args[0].from }).then(() => args[0])
 						},
 						foo() {
@@ -395,7 +409,7 @@ describe('schemaBuilder', () => {
 						},
 					}
 					const preMethods2 = {
-						loadMyFeed({ data: { results, key, args, context } }) {
+						loadMyFeed({ data: { results, key, args, context, setNewArguments } }) {
 							return context.findOne({ username: { $ne: args[0].from } }).then(() => args)
 						},
 					}
@@ -426,6 +440,8 @@ describe('schemaBuilder', () => {
 					const rootArgs = { from: now, limit: 11 }
 					await model.loadMyFeed(rootArgs)
 
+					assert.deepEqual(loadMyFeedSpy.lastCall.args, [rootArgs])
+
 					// Ensure the first pre middleware was called on the object correctly
 					assert.isTrue(spiesMap.loadMyFeed.calledOnce)
 					assert.deepEqual(spiesMap.loadMyFeed.lastCall.args[0].results, [])
@@ -434,6 +450,7 @@ describe('schemaBuilder', () => {
 						context: model,
 					})
 					assert.deepEqual(spiesMap.loadMyFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.isFunction(spiesMap.loadMyFeed.lastCall.args[0].data.setNewArguments)
 					assert.notEqual(spiesMap.loadMyFeed.lastCall.thisValue, model)
 
 					// Ensure the second pre middleware was called on the object correctly
@@ -444,6 +461,7 @@ describe('schemaBuilder', () => {
 						context: model,
 					})
 					assert.deepEqual(spiesMap2.loadMyFeed.lastCall.args[0].data.args[0], rootArgs)
+					assert.isFunction(spiesMap2.loadMyFeed.lastCall.args[0].data.setNewArguments)
 					assert.notEqual(spiesMap2.loadMyFeed.lastCall.thisValue, model)
 
 					// Ensure the pre middlewares for other static methods were not called
