@@ -1,6 +1,6 @@
 # slimgoose
 
-Slim Mongoose interface to MongoDB with an immutable schema builder.
+Slim Mongoose interface to MongoDB with an clonable schema builder.
 
 ### Still Under Development
 
