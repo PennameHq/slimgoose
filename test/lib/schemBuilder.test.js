@@ -102,6 +102,39 @@ describe('schemaBuilder', () => {
 	describe('nonimmutable methods', () => {
 		const createBuilder = (schema) => new _(schema)
 
+		describe('#add()', () => {
+			it(
+				'should calls the correct mongoose.Schema function',
+				withStubs(() => {
+					const proxySpy = helper.spy(mongoose.Schema.prototype, 'add')
+					const newFields = {
+						year: Number,
+						[`friends${Date.now()}`]: [String],
+						foo: { type: String, index: true },
+					}
+
+					const builder = createBuilder({
+						username: { type: String, index: true, required: true },
+						email: { type: String, required: true },
+						age: { type: Number },
+					}).add(newFields)
+
+					assert.deepEqual(proxySpy.lastCall.args, [newFields])
+					Object.keys(newFields).forEach((key) => {
+						assert.isObject(builder._schema.paths[key])
+					})
+				}),
+			)
+
+			it('should return the builder', () => {
+				const builder = createBuilder({
+					username: { type: String, required: true },
+				})
+
+				assert.equal(builder.add({ year: Number, friends: [String] }), builder)
+			})
+		})
+
 		describe('#method()', () => {
 			it('should add the provided methods as instance methods on the schema', () => {
 				const builder = createBuilder({
