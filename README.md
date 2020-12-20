@@ -1,6 +1,6 @@
 # slimgoose
 
-Slim Mongoose interface to MongoDB with an clonable schema builder.
+A convenient, slim [Mongoose](https://www.npmjs.com/package/mongoose) interface to [MongoDB](https://www.mongodb.com/) for getting your data layer up and running quickly and cleanly. Leverages a clonable schema builder.
 
 ### Still Under Development
 
@@ -77,7 +77,7 @@ We're still in the process of adding documentation, so please reference the test
 
 # Roadmap
 
-- Need to add common helper methods of schemas
+- Need to add slimPlugin™ support
 - Need to add cachegoose support
 - Need to add more documentation to the README
 
