@@ -1,6 +1,6 @@
 # slimgoose
 
-Slim Mongoose interface to MongoDB with an immutable schema builder.
+Slim Mongoose interface to MongoDB with an clonable schema builder.
 
 ### Still Under Development
 
@@ -78,6 +78,7 @@ We're still in the process of adding documentation, so please reference the test
 # Roadmap
 
 - Need to add slimPlugin™ support
+- Need to add cachegoose support
 - Need to add more documentation to the README
 
 # Contribute
