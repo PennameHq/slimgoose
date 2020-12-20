@@ -39,6 +39,7 @@ const User = slimgoose
 		email: { type: String, require: true },
 		username: { type: String, index: true },
 	})
+	.add({ friends: { type: [String] }, lastActiveAt: Date })
 	.staticMethods({
 		insertNew(data) {
 			return new User(data).save()
@@ -77,8 +78,7 @@ We're still in the process of adding documentation, so please reference the test
 
 # Roadmap
 
-- Need to add common helper methods of schemas
-- Need to add middleware for methods and static methods.
+- Need to add slimPlugin™ support
 - Need to add more documentation to the README
 
 # Contribute
