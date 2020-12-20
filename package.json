@@ -1,7 +1,7 @@
 {
 	"name": "@penname/slimgoose",
 	"version": "0.8.1",
-	"description": "A slim Mongoose interface to MongoDB",
+	"description": "A convenient, slim Mongoose interface to MongoDB for getting up and running quickly and maintably. Leverages a clonable schema builder.",
 	"main": "index.js",
 	"scripts": {
 		"test": "nyc --reporter=cobertura mocha",
