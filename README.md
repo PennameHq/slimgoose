@@ -39,7 +39,6 @@ const User = slimgoose
 		email: { type: String, require: true },
 		username: { type: String, index: true },
 	})
-	.add({ friends: { type: [String] }, lastActiveAt: Date })
 	.staticMethods({
 		insertNew(data) {
 			return new User(data).save()
