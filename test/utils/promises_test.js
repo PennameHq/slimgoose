@@ -5,7 +5,7 @@ const chai = require('chai')
 const assert = chai.assert
 const helper = require('../helper')()
 
-const _ = require('../lib/utils/promises')
+const _ = require('../../utils/promises')
 
 // npm run shared-test PromiseUtils
 describe('promiseUtils', () => {
