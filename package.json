@@ -30,12 +30,15 @@
 		"on-change": "^2.2.0",
 		"prettier": "^2.2.1",
 		"sinon": "^9.2.1",
-		"sinon-test": "^3.0.0"
-	},
-	"dependencies": {
-		"mongoose": "latest",
+		"sinon-test": "^3.0.0",
+		"mongoose": "^5.9.3",
 		"q": "^1.5.1",
 		"ramda": "^0.27.1"
+	},
+	"peerDependencies": {
+		"mongoose": ">=5.9.0",
+		"q": ">=1.5.1",
+		"ramda": ">=0.27.1"
 	},
 	"directories": {
 		"lib": "lib",
