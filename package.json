@@ -1,6 +1,6 @@
 {
 	"name": "@penname/slimgoose",
-	"version": "0.8.2",
+	"version": "0.9.0",
 	"description": "A convenient, slim Mongoose interface to MongoDB for getting your data layer up and running quickly and cleanly.",
 	"main": "index.js",
 	"scripts": {
